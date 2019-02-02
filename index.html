@@ -28,6 +28,9 @@
             padding: 0 20px;
 		        transition: background-color 0.25s;
         }
+        p {
+            margin: 0 0 10px;
+        }
         .input-box {
             max-width: 600px;
             margin: 0 auto;
@@ -36,21 +39,100 @@
         .input-box-inner {
             padding: 20px;
         }
-        .error-box strong {
+        .input p {
+          width: 49%;
+          float: left;
+        }
+        input {
+            font-family: 'Source Sans Pro', Arial, sans-serif;
+            font-size: 1.063em;
+            border: 1px solid #000;
+            background-color: #FFF;
+            width: 92%;
+            max-width: 260px;
+            padding: 3px 1px;
+            border-radius: 0;
+            margin-bottom: 10px;
+            -webkit-appearance: none;
+        }
+        input::-webkit-input-placeholder {
+            color: #000;
+            opacity: 1;
+        }
+        input:-ms-input-placeholder{
+            color: #000;
+            opacity: 1;
+        }
+        input::-moz-placeholder {
+            color: #000;
+            opacity: 1;
+        }
+        input:-moz-placeholder {
+            color: #000;
+            opacity: 1;
+        }
+        .error strong {
           font-weight: normal;
           color: #fe0000;
+        }
+        .small {
+          font-size: 0.824em;
+        }
+        .clearfix::before,
+        .clearfix::after {
+          content: " ";
+          display: table;
+        }
+        .clearfix::after {
+          clear: both;
+        }
+        .clearfix {
+          *zoom: 1; /* Für den IE6 und IE7 */
         }
     </style>
   </head>
   <body>
+    <div class="input-box">
+      <div class="input-box-inner clearfix">
+          <div class="input">
+            <p>
+              <label for="timer">Timer</label><br />
+              <input id="timer" type="number" value="250" placeholder="250" min="0" max="10000" pattern="\d*" />
+            </p>
+          </div>
+          <div class="input">
+            <p>
+              <label for="buffer">Buffer</label><br />
+              <input id="buffer" type="number" value="5" placeholder="5" min="0" max="50" pattern="\d*" />
+            </p>
+          </div>
+          <p class="small">
+            Timer: Timeout in milliseconds to generate a new color<br />
+            Buffer: Change color if value is higher or lower than value +/- buffer value
+          </p>
+      </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script type="text/javascript">
+      var init_audio = 0;
+      var init_color = 0;
+      var color_buffer = 0;
+
       var colorOutput = function(color) {
-        var c = (color * 16777215) / 100;
-        var r = Math.floor(c / (256*256));
-        var g = Math.floor(c / 256) % 256;
-        var b = Math.floor(c % 256);
-        $('body').empty().css('background-color', 'rgb(' + r + ',' + g + ',' + b + ')');
+        var timer = parseInt(jQuery('#timer').val() ? jQuery('#timer').val() : 250);
+        var buffer = parseInt(jQuery('#buffer').val() ? jQuery('#buffer').val() : 5);
+
+        if ( ( init_audio > init_color + timer && ( color > color_buffer + buffer || color < color_buffer - buffer) ) || init_color == 0) {
+          var c = (color * 16777215) / 100;
+          var r = Math.floor(c / (256*256));
+          var g = Math.floor(c / 256) % 256;
+          var b = Math.floor(c % 256);
+
+          $('body').css('background-color', 'rgb(' + r + ',' + g + ',' + b + ')');
+          init_color = performance.now();
+          color_buffer = color;
+        }
       }
 
       var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -75,6 +157,7 @@
         analyser.connect(javascriptNode);
         javascriptNode.connect(audioContext.destination);
         javascriptNode.onaudioprocess = function() {
+          init_audio = performance.now();
           var array = new Uint8Array(analyser.frequencyBinCount);
           analyser.getByteFrequencyData(array);
           var values = 0;
@@ -86,12 +169,12 @@
 
           var average = values / length;
 
-          console.log(Math.round(average));
+          //console.log(Math.round(average));
           colorOutput( average );
         }
       })
       .catch(function(err) {
-        $('body').append('<div class="input-box error-box"><div class="input-box-inner">The following error occured: <strong>' + err.name + '</strong><br />' + err.message + '<p></p></div></div>');
+        $('body .input-box-inner').empty().append('<p class="error">The following error occured: <strong>' + err.name + '</strong><br />' + err.message + '</p>');
       });
     </script>
   </body>
